@@ -363,4 +363,31 @@ describe FastAttributes do
       end
     end
   end
+
+  describe 'ActiveModel::Dirty support' do
+    require 'active_model'
+
+    it 'should track changes if ActiveModel::Dirty is included' do
+      class DirtyMagazine
+        include ActiveModel::Dirty
+        extend FastAttributes
+        define_attributes initialize: true, attributes: true do
+          attribute :title, :issue, String
+        end
+      end
+
+      mag = DirtyMagazine.new(:title => 'Rustler')
+      expect(mag.changes).to be_empty
+      mag.issue = nil # no change
+      expect(mag.changes).to be_empty
+      mag.title = 'Crustler'
+      expect(mag.changes).to eq({"title" => ["Rustler", "Crustler"]})
+      mag.issue = nil # no change
+      expect(mag.changes).to eq({"title" => ["Rustler", "Crustler"]})
+      mag.issue = "41"
+      expect(mag.changes).to eq({"title" => ["Rustler", "Crustler"], "issue" => [nil, "41"]})
+
+    end
+
+  end
 end

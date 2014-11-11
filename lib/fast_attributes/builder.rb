@@ -8,6 +8,8 @@ module FastAttributes
       @options    = options
       @attributes = []
       @methods    = Module.new
+      # check for pre-included ActiveModel::Dirty
+      @change_track = klass.private_instance_methods.include?(:attribute_will_change!)
     end
 
     def attribute(*attributes, type)
@@ -49,21 +51,34 @@ module FastAttributes
       each_attribute do |attribute, type|
         type_cast   = FastAttributes.get_type_casting(type)
         method_body = type_cast.compile_method_body(attribute, 'value')
-
-        @methods.module_eval <<-EOS, __FILE__, __LINE__ + 1
-          def #{attribute}=(value)
-            @#{attribute} = #{method_body}
-          end
-        EOS
+        if @change_track
+          @methods.module_eval <<-EOS, __FILE__, __LINE__ + 1
+            def #{attribute}=(value)
+              new_val = #{method_body}
+              if ! @attr_initing && new_val != @#{attribute}
+                attribute_will_change!(:#{attribute})
+              end
+              @#{attribute} = new_val
+            end
+          EOS
+        else
+          @methods.module_eval <<-EOS, __FILE__, __LINE__ + 1
+            def #{attribute}=(value)
+              @#{attribute} = #{method_body}
+            end
+          EOS
+        end
       end
     end
 
     def compile_initialize
       @methods.module_eval <<-EOS, __FILE__, __LINE__ + 1
         def initialize(attributes = {})
+          @attr_initing = true
           attributes.each do |name, value|
             public_send("\#{name}=", value)
           end
+          @attr_initing = false
         end
       EOS
     end
