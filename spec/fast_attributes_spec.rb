@@ -180,12 +180,11 @@ describe FastAttributes do
 
     it 'setter methods raise an exception when cannot parse values' do
       object = BasicObject.new
-      def object.to_s; 'BasicObject'; end
-      def object.to_str; 1/0 end
+      def object.to_s; self; end
 
       book = Book.new
-      expect{ book.title = object }.to raise_error(FastAttributes::TypeCast::InvalidValueError, 'Invalid value "BasicObject" for attribute "title" of type "String"')
-      expect{ book.name = object }.to raise_error(FastAttributes::TypeCast::InvalidValueError,  'Invalid value "BasicObject" for attribute "name" of type "String"')
+      expect{ book.title = object }.to raise_error(FastAttributes::TypeCast::InvalidValueError, /Invalid value.*BasicObject.*for attribute "title" of type "String"/)
+      expect{ book.name = object }.to raise_error(FastAttributes::TypeCast::InvalidValueError,  /Invalid value.*BasicObject.*for attribute "name" of type "String"/)
       expect{ book.pages = 'number' }.to raise_error(FastAttributes::TypeCast::InvalidValueError, 'Invalid value "number" for attribute "pages" of type "Integer"')
       expect{ book.price = 'bigdecimal' }.to raise_error(FastAttributes::TypeCast::InvalidValueError, 'Invalid value "bigdecimal" for attribute "price" of type "BigDecimal"')
       expect{ book.published = 'date' }.to raise_error(FastAttributes::TypeCast::InvalidValueError, 'Invalid value "date" for attribute "published" of type "Date"')
